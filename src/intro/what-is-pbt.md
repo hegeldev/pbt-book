@@ -71,17 +71,17 @@ func TestRespectsLRUCapacity(t *testing.T) {
 {{#endtab }}
 {{#tab name="C++" }}
 ```cpp
-#include <cassert>
+#include <gtest/gtest.h>
 #include <string>
 
-int main() {
+TEST(MyLRUCache, RespectsCapacity) {
 	MyLRUCache<std::string, int> cache(2);
 
 	cache.put("a", 1);
 	cache.put("b", 2);
 	cache.put("c", 3);
 
-	assert(cache.size() <= 2);
+	EXPECT_LE(cache.size(), 2);
 }
 ```
 {{#endtab }}
@@ -156,10 +156,11 @@ func TestRespectsLRUCapacity(t *testing.T) {
 {{#endtab }}
 {{#tab name="C++" }}
 ```cpp
+#include <gtest/gtest.h>
 #include <hegel/hegel.h>
 namespace gs = hegel::generators;
 
-int main() {
+TEST(MyLRUCache, RespectsCapacity) {
 	hegel::test([](hegel::TestCase& tc) {
 		auto capacity = tc.draw(gs::integers<size_t>({.min_value = 0}));
 		MyLRUCache<std::string, int> cache(capacity);
@@ -171,7 +172,7 @@ int main() {
 			cache.put(key, value);
 		}
 
-		assert(cache.size() <= capacity);
+		EXPECT_LE(cache.size(), capacity);
 	});
 }
 ```
