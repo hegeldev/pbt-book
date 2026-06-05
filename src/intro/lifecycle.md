@@ -1,39 +1,58 @@
 # Lifecycle of a Property-Based Test
 
 In the [previous chapter](./what-is-pbt.md) we wrote a property-based test for an
-LRU cache. Let's run one for real, against a deliberately broken implementation,
-and watch what Hegel does with it.
+LRU cache. In this chapter we'll go through it in more detail, and what happens
+when we run it.
 
-Here is a cache that claims to be an LRU cache but never evicts anything — it
-just stores every entry in a dictionary — together with the property test from
-before:
+In order to do this, let's run it against a real, buggy, implementation of MyLRUCache.
+
+This implementation isn't really an LRU cache at all: it just stores every entry
+in a dictionary and never evicts anything, so its size grows without bound.
 
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}
 ```rust,ignore
 {{#include ../../examples/rust/src/lib.rs:impl}}
-
-{{#include ../../examples/rust/tests/lru.rs:test}}
 ```
 {{#endtab }}
 {{#tab name="Go" }}
 ```go
 {{#include ../../examples/go/cache.go:impl}}
-
-{{#include ../../examples/go/lru_test.go:test}}
 ```
 {{#endtab }}
 {{#tab name="C++" }}
 ```cpp
 {{#include ../../examples/cpp/cache.hpp:impl}}
-
-{{#include ../../examples/cpp/lru_test.cpp:test}}
 ```
 {{#endtab }}
 {{#tab name="TypeScript" }}
 ```typescript
 {{#include ../../examples/typescript/src/cache.ts:impl}}
+```
+{{#endtab }}
+{{#endtabs }}
 
+And here is the property-based test from the previous chapter, which we'll run
+against it:
+
+{{#tabs global="hegel-lang" }}
+{{#tab name="Rust" }}
+```rust,ignore
+{{#include ../../examples/rust/tests/lru.rs:test}}
+```
+{{#endtab }}
+{{#tab name="Go" }}
+```go
+{{#include ../../examples/go/lru_test.go:test}}
+```
+{{#endtab }}
+{{#tab name="C++" }}
+```cpp
+{{#include ../../examples/cpp/lru_test.cpp:test}}
+```
+{{#endtab }}
+{{#tab name="TypeScript" }}
+```typescript
 {{#include ../../examples/typescript/test/lru.test.ts:test}}
 ```
 {{#endtab }}
