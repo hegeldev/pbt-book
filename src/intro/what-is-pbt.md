@@ -158,6 +158,7 @@ func TestRespectsLRUCapacity(t *testing.T) {
 ```cpp
 #include <gtest/gtest.h>
 #include <hegel/hegel.h>
+#include <stdexcept>
 namespace gs = hegel::generators;
 
 TEST(MyLRUCache, RespectsCapacity) {
@@ -172,7 +173,11 @@ TEST(MyLRUCache, RespectsCapacity) {
 			cache.put(key, value);
 		}
 
-		EXPECT_LE(cache.size(), capacity);
+		// Hegel detects failures via thrown exceptions, so the property
+		// throws rather than using a (non-throwing) gtest assertion.
+		if (cache.size() > capacity) {
+			throw std::runtime_error("cache size exceeds capacity");
+		}
 	});
 }
 ```
