@@ -18,8 +18,8 @@ exact wording may drift between versions.
 
 from __future__ import annotations
 
-import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -80,7 +80,7 @@ def extract_go(text: str) -> list[str]:
     out = slice_lines(lines, "--- FAIL:", re.compile(r"^FAIL\tlru-example"))
     text = "\n".join(out)
     text = re.sub(r" \(\d+\.\d+s\)", "", text)
-    text = re.sub(r"^(FAIL\tlru-example)\t\d+\.\d+s", r"\1", text, flags=re.M)
+    text = re.sub(r"^(FAIL\tlru-example(?:/\S+)?)\t\d+\.\d+s", r"\1", text, flags=re.M)
     return text.splitlines()
 
 
@@ -104,23 +104,58 @@ def extract_typescript(text: str) -> list[str]:
     )
 
 
+# (output-name, language, subdir, command, extractor). Each language has two
+# iterations of the test: the original (capacity >= 0) and a second that only
+# draws non-zero capacities (the "-nonzero" outputs). Every iteration-1 command
+# is scoped so it doesn't also pick up the iteration-2 test that now sits beside
+# it (a separate test crate / executable / file / package per language).
 EXAMPLES = [
-    ("rust", "rust", ["cargo", "test", "--test", "lru", "--color", "never"], extract_rust),
-    ("go", "go", ["go", "test", "./..."], extract_go),
-    ("cpp", "cpp", ["./build/lru_test", "--gtest_color=no"], extract_cpp),
-    ("typescript", "typescript", ["npm", "test", "--silent"], extract_typescript),
+    ("rust", "rust", "rust",
+     ["cargo", "test", "--test", "lru", "--color", "never"], extract_rust),
+    ("rust-nonzero", "rust", "rust",
+     ["cargo", "test", "--test", "lru_nonzero", "--color", "never"], extract_rust),
+    ("go", "go", "go", ["go", "test", "."], extract_go),
+    ("go-nonzero", "go", "go", ["go", "test", "./nonzero/"], extract_go),
+    ("cpp", "cpp", "cpp", ["./build/lru_test", "--gtest_color=no"], extract_cpp),
+    ("cpp-nonzero", "cpp", "cpp",
+     ["./build/lru_nonzero_test", "--gtest_color=no"], extract_cpp),
+    ("typescript", "typescript", "typescript",
+     ["npm", "test", "--silent", "--", "test/lru.test.ts"], extract_typescript),
+    ("typescript-nonzero", "typescript", "typescript",
+     ["npm", "test", "--silent", "--", "test/lru_nonzero.test.ts"], extract_typescript),
 ]
 
 
-def run_one(name: str, subdir: str, cmd: list[str], extract) -> bool:
-    cwd = HERE / subdir
-    print(f"== {name}: {' '.join(cmd)} (in {cwd.relative_to(REPO)})")
-    # Redirect stderr into stdout so the two streams stay interleaved in the
-    # order a terminal would show them (Hegel prints draws and framing across
-    # both, and the ordering matters).
-    proc = subprocess.run(
+# Some of these tests are genuinely flaky: the naive "capacity >= 1" property is
+# true of *almost* every randomly generated example (you need more distinct keys
+# than the capacity, and most random capacities are large), so a given run may
+# not find the bug. That flakiness is itself something the book talks about; here
+# we just retry until we get a failure to capture.
+MAX_TRIES = 12
+
+
+def run_cmd(cwd: Path, cmd: list[str]) -> subprocess.CompletedProcess:
+    # Clear Hegel's saved-example database so each attempt is an independent
+    # from-scratch search rather than a replay of a locally-saved example. (We
+    # keep the rest of .hegel — the downloaded server and unicode data — to avoid
+    # re-downloading it each run.) Redirect stderr into stdout so the two streams
+    # stay interleaved in the order a terminal would show them.
+    shutil.rmtree(cwd / ".hegel" / "examples", ignore_errors=True)
+    return subprocess.run(
         cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     )
+
+
+def run_one(name: str, lang: str, subdir: str, cmd: list[str], extract) -> bool:
+    cwd = HERE / subdir
+    print(f"== {name}: {' '.join(cmd)} (in {cwd.relative_to(REPO)})")
+
+    # The cache is broken, so a run that finds the bug *fails* (non-zero exit).
+    # Retry until we get one, since a passing run just means search got unlucky.
+    for attempt in range(1, MAX_TRIES + 1):
+        proc = run_cmd(cwd, cmd)
+        if proc.returncode != 0:
+            break
     combined = proc.stdout
     (OUT / f"{name}.raw.txt").write_text(combined)
 
@@ -130,10 +165,11 @@ def run_one(name: str, subdir: str, cmd: list[str], extract) -> bool:
         trimmed = re.sub(pat, repl, trimmed)
     (OUT / f"{name}.txt").write_text(trimmed)
 
-    # Every example is supposed to fail (the cache is broken).
     ok = proc.returncode != 0 and trimmed.strip() != ""
-    print(f"   exit={proc.returncode}, {len(trimmed.splitlines())} display lines"
-          f" -> expected-output/{name}.txt{'' if ok else '  [!] unexpected'}")
+    tries = f" (after {attempt} tries)" if attempt > 1 else ""
+    note = "" if ok else f"  [!] no failure in {MAX_TRIES} tries"
+    print(f"   exit={proc.returncode}{tries}, {len(trimmed.splitlines())} display"
+          f" lines -> expected-output/{name}.txt{note}")
     return ok
 
 
@@ -141,10 +177,11 @@ def main() -> int:
     OUT.mkdir(exist_ok=True)
     only = set(sys.argv[1:])
     results = []
-    for name, subdir, cmd, extract in EXAMPLES:
-        if only and name not in only:
+    for name, lang, subdir, cmd, extract in EXAMPLES:
+        # `just examples rust` runs both rust iterations; `rust-nonzero` runs one.
+        if only and name not in only and lang not in only:
             continue
-        results.append(run_one(name, subdir, cmd, extract))
+        results.append(run_one(name, lang, subdir, cmd, extract))
     return 0 if all(results) else 1
 
 

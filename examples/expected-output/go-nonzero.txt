@@ -1,0 +1,9 @@
+--- FAIL: TestRespectsLRUCapacity
+    lru_nonzero_test.go:15: capacity := hegel.Draw(ht, hegel.Integers(1, math.MaxInt)) = 1
+    lru_nonzero_test.go:18: keys := hegel.Draw(ht, hegel.Lists(hegel.Text())) = []string{"", "0"}
+    lru_nonzero_test.go:20: value := hegel.Draw(ht, hegel.Integers(math.MinInt, math.MaxInt)) = 0
+    lru_nonzero_test.go:20: value := hegel.Draw(ht, hegel.Integers(math.MinInt, math.MaxInt)) = 0
+    lru_nonzero_test.go:25: cache size exceeds capacity
+    lru_nonzero_test.go:14: property test failed: cache size exceeds capacity
+FAIL
+FAIL	lru-example/nonzero

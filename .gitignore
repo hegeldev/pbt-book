@@ -18,3 +18,6 @@ examples/expected-output/*.raw.txt
 
 # claude local config
 CLAUDE.local.md
+
+# Python bytecode cache
+__pycache__/

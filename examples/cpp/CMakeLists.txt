@@ -23,5 +23,11 @@ enable_testing()
 add_executable(lru_test lru_test.cpp)
 target_link_libraries(lru_test PRIVATE hegel GTest::gtest GTest::gtest_main)
 
+# Second iteration (capacity >= 1) lives in its own executable so it can keep
+# the same TEST name as the first.
+add_executable(lru_nonzero_test lru_nonzero_test.cpp)
+target_link_libraries(lru_nonzero_test PRIVATE hegel GTest::gtest GTest::gtest_main)
+
 include(GoogleTest)
 gtest_discover_tests(lru_test)
+gtest_discover_tests(lru_nonzero_test)

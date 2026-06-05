@@ -1,0 +1,15 @@
+running 1 test
+test test_respects_lru_capacity ... FAILED
+
+failures:
+
+---- test_respects_lru_capacity stdout ----
+let capacity = 1;
+let entries = [("", 0), ("0", 0)];
+thread 'test_respects_lru_capacity' panicked at tests/lru_nonzero.rs:16:5:
+assertion failed: cache.size() <= capacity
+
+failures:
+    test_respects_lru_capacity
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
