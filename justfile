@@ -4,6 +4,10 @@ set ignore-comments := true
 default:
     @just --list
 
+# Install the preprocessors this book depends on
+setup:
+    cargo install mdbook-tabs
+
 # Build the book into ./book
 build:
     mdbook build

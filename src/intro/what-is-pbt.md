@@ -29,3 +29,106 @@ These four categories roughly correspond to:
 4. Property-based testing (what this book is about)
 
 None of these are truly distinct categories, and all of them are great in some contexts. This is important to remember: When learning about property-based testing, it's easy to get excited and think all of your tests should be property-based tests. Resist that urge. Property-based tests are part of a complete ~breakfast~ test suite, not the whole of it.
+
+## An example
+
+Here's what a property-based test looks like with Hegel. This one checks that an
+LRU cache never exceeds its configured capacity, no matter what sequence of
+entries we put into it. Pick your language — the rest of the book will follow
+your choice.
+
+{{#tabs global="hegel-lang" }}
+{{#tab name="Rust" }}
+```rust
+use hegel::generators as gs;
+use hegel::TestCase;
+
+#[hegel::test]
+fn test_respects_lru_capacity(tc: TestCase) {
+	let capacity = tc.draw(gs::integers::<usize>().min_value(0));
+	let mut cache = MyLRUCache::<String, i64>::new(capacity);
+
+	let entries = tc.draw(
+	    gs::vecs(gs::tuples!(gs::text(), gs::integers::<i64>()))
+	);
+	for (key, value) in entries {
+		cache.put(key, value);
+	}
+
+	assert!(cache.size() <= capacity);
+}
+```
+{{#endtab }}
+{{#tab name="Go" }}
+```go
+import (
+  "math"
+  "testing"
+  "hegel.dev/go/hegel"
+)
+
+func TestRespectsLRUCapacity(t *testing.T) {
+	t.Run("MyLRUCache respects capacity", hegel.Case(func(ht *hegel.T) {
+		capacity := hegel.Draw(ht, hegel.Integers(0, math.MaxInt))
+		cache := NewMyLRUCache[string, int](capacity)
+
+		keys := hegel.Draw(ht, hegel.Lists(hegel.Text(0, math.MaxInt)))
+		for _, key := range keys {
+			value := hegel.Draw(ht, hegel.Integers(math.MinInt, math.MaxInt))
+			cache.Put(key, value)
+		}
+
+		if cache.Size() > capacity {
+			ht.Fatalf("cache size exceeds capacity")
+		}
+	}))
+}
+```
+{{#endtab }}
+{{#tab name="C++" }}
+```cpp
+#include <hegel/hegel.h>
+namespace gs = hegel::generators;
+
+int main() {
+	hegel::test([](hegel::TestCase& tc) {
+		auto capacity = tc.draw(gs::integers<size_t>({.min_value = 0}));
+		MyLRUCache<std::string, int> cache(capacity);
+
+		auto entries = tc.draw(
+		  gs::vectors(gs::tuples(gs::text(), gs::integers<int>()))
+		);
+		for (const auto& [key, value] : entries) {
+			cache.put(key, value);
+		}
+
+		assert(cache.size() <= capacity);
+	});
+}
+```
+{{#endtab }}
+{{#tab name="TypeScript" }}
+```typescript
+import { test, expect } from "vitest";
+import * as hegel from "@hegeldev/hegel";
+import * as gs from "@hegeldev/hegel/generators";
+
+test(
+	"MyLRUCache respects capacity",
+	hegel.test((tc) => {
+		const capacity = tc.draw(gs.integers({ minValue: 0 }));
+		const cache = new MyLRUCache<string, number>(capacity);
+
+		const entries = tc.draw(
+		    gs.arrays(gs.tuples(gs.text(), gs.integers())),
+		);
+		for (const [key, value] of entries) {
+		    cache.put(key, value);
+		}
+
+		expect(cache.size()).toBeLessThanOrEqual(capacity);
+	}),
+);
+```
+{{#endtab }}
+{{#endtabs }}
