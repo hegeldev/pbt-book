@@ -1,0 +1,8 @@
+# mdbook build output
+book/
+
+# macOS-specific files
+.DS_Store
+
+# claude local config
+CLAUDE.local.md

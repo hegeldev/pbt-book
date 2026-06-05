@@ -1,0 +1,20 @@
+[book]
+title = "Property-based testing with Hegel"
+authors = ["Hegel"]
+description = "A book about property-based testing with Hegel, a universal property-based testing protocol and family of libraries built on Hypothesis."
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/hegeldev/hegel-book"
+edit-url-template = "https://github.com/hegeldev/hegel-book/edit/main/{path}"
+site-url = "/hegel-book/"
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.search]
+enable = true
