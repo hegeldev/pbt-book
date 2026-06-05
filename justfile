@@ -24,3 +24,11 @@ clean:
 # Run mdbook's tests (e.g. checks on code blocks)
 test:
     mdbook test
+
+# Run the runnable language examples and regenerate their captured output.
+# This actually compiles and runs each example under examples/ (they're the
+# real, tested versions of the code shown in the book), so it needs the Rust,
+# Go, C++ and Node toolchains. Pass a language name to run just one, e.g.
+# `just examples rust`.
+examples *langs:
+    python3 examples/run.py {{langs}}

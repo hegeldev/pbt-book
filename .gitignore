@@ -1,6 +1,18 @@
 # mdbook build output
 book/
 
+# example build artifacts
+examples/rust/target/
+examples/cpp/build/
+examples/typescript/node_modules/
+
+# Hegel's local cache, server logs, and failing-example database
+.hegel/
+
+# raw (unedited) captured output — provenance only; the trimmed *.txt are
+# committed and included in the book. Regenerate with `just examples`.
+examples/expected-output/*.raw.txt
+
 # macOS-specific files
 .DS_Store
 

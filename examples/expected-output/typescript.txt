@@ -1,0 +1,4 @@
+var draw_1 = 0;
+var draw_2 = [ [ '', 0 ] ];
+
+expected 1 to be less than or equal to 0

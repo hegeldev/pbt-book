@@ -1,0 +1,20 @@
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from MyLRUCache
+[ RUN      ] MyLRUCache.RespectsCapacity
+Generated: 0
+Generated: [["",0]]
+unknown file: Failure
+C++ exception with description "
+Hegel test failed: cache size exceeds capacity" thrown in the test body.
+
+[  FAILED  ] MyLRUCache.RespectsCapacity
+[----------] 1 test from MyLRUCache
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran.
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] MyLRUCache.RespectsCapacity
+
+ 1 FAILED TEST
