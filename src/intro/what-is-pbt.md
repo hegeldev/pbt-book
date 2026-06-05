@@ -32,10 +32,79 @@ None of these are truly distinct categories, and all of them are great in some c
 
 ## An example
 
-Here's what a property-based test looks like with Hegel. This one checks that an
-LRU cache never exceeds its configured capacity, no matter what sequence of
-entries we put into it. Pick your language — the rest of the book will follow
-your choice.
+Suppose we have an LRU cache, and we want to check that it never exceeds its
+configured capacity. With example-based testing, we'd pick one concrete
+scenario: build a cache with capacity 2, put three entries into it, and check
+the size. Pick your language — the rest of the book will follow your choice.
+
+{{#tabs global="hegel-lang" }}
+{{#tab name="Rust" }}
+```rust
+#[test]
+fn test_respects_lru_capacity() {
+	let mut cache = MyLRUCache::<String, i64>::new(2);
+
+	cache.put("a".to_string(), 1);
+	cache.put("b".to_string(), 2);
+	cache.put("c".to_string(), 3);
+
+	assert!(cache.size() <= 2);
+}
+```
+{{#endtab }}
+{{#tab name="Go" }}
+```go
+import "testing"
+
+func TestRespectsLRUCapacity(t *testing.T) {
+	cache := NewMyLRUCache[string, int](2)
+
+	cache.Put("a", 1)
+	cache.Put("b", 2)
+	cache.Put("c", 3)
+
+	if cache.Size() > 2 {
+		t.Fatalf("cache size exceeds capacity")
+	}
+}
+```
+{{#endtab }}
+{{#tab name="C++" }}
+```cpp
+#include <cassert>
+#include <string>
+
+int main() {
+	MyLRUCache<std::string, int> cache(2);
+
+	cache.put("a", 1);
+	cache.put("b", 2);
+	cache.put("c", 3);
+
+	assert(cache.size() <= 2);
+}
+```
+{{#endtab }}
+{{#tab name="TypeScript" }}
+```typescript
+import { test, expect } from "vitest";
+
+test("MyLRUCache respects capacity", () => {
+	const cache = new MyLRUCache<string, number>(2);
+
+	cache.put("a", 1);
+	cache.put("b", 2);
+	cache.put("c", 3);
+
+	expect(cache.size()).toBeLessThanOrEqual(2);
+});
+```
+{{#endtab }}
+{{#endtabs }}
+
+This is a perfectly good test, but it only checks one scenario. A property-based
+test instead describes what should be true for *any* capacity and *any* sequence
+of entries, and lets Hegel search for a counterexample:
 
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}
