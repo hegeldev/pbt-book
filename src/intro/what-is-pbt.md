@@ -25,7 +25,7 @@ These four categories roughly correspond to:
 
 1. Snapshot testing (AKA golden master testing AKA expect testing)
 2. Example-based testing (what you probably think of as "normal software testing")
-3. Differential testing (comparing two implementations of the same API and asserting that they get the same result)
+3. Differential testing (comparing two implementations of the same API and asserting that they get the same result)[^differential]
 4. Property-based testing (what this book is about)
 
 None of these are truly distinct categories, and all of them are great in some contexts. This is important to remember: When learning about property-based testing, it's easy to get excited and think all of your tests should be property-based tests. Resist that urge. Property-based tests are part of a complete ~breakfast~ test suite, not the whole of it.
@@ -33,9 +33,7 @@ None of these are truly distinct categories, and all of them are great in some c
 ## An example
 
 Suppose we have an LRU cache, and we want to check that it never exceeds its
-configured capacity. With example-based testing, we'd pick one concrete
-scenario: build a cache with capacity 2, put three entries into it, and check
-the size. Pick your language — the rest of the book will follow your choice.
+configured capacity. We might write the following example-based test:
 
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}
@@ -102,9 +100,12 @@ test("MyLRUCache respects capacity", () => {
 {{#endtab }}
 {{#endtabs }}
 
-This is a perfectly good test, but it only checks one scenario. A property-based
-test instead describes what should be true for *any* capacity and *any* sequence
-of entries, and lets Hegel search for a counterexample:
+This is a perfectly reasonable test, but notice the difference between what
+it promises and what it actually does. The claim of the test is that the cache
+*never* exceeds its capacity, but the test actually only shows that after one
+very specific sequence of operations the cache has not exceeded its capacity.
+
+In contrast, we might write the following property-based test:
 
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}
@@ -207,3 +208,9 @@ test(
 ```
 {{#endtab }}
 {{#endtabs }}
+
+This test generates a fully general series of put operations against the cache, and asserts that the capacity is still respected at the end.
+
+Now, this still doesn't actually guarantee that the cache never exceeds its capacity. For starters (more on this problem later), this is only performing put operations.
+
+[^differential]: Arguably differential testing is a type of property-based testing, and certainly you can and sometimes should use a property-based testing library to do differential testing, but it's a bit of a special category.
