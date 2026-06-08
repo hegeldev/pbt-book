@@ -126,6 +126,50 @@ EXAMPLES = [
 ]
 
 
+# Verbose iteration. This runs the same "capacity >= 1" property as the
+# `-nonzero` examples but with verbosity turned up and a fixed seed, so the run
+# prints every generated test case and every shrink step. The full trace is
+# hundreds of lines, so unlike the examples above there is *no* automatic
+# extractor: we only write the full ``<name>.raw.txt`` here, and the trimmed
+# ``<name>.txt`` that the book includes is curated *by hand* from it (keeping a
+# few initial cases, the first failure, and a sample of the shrinking). That
+# means re-running this script will NOT clobber the hand-edited verbose .txt.
+#
+# Only Rust appears here. At the library versions pinned in this directory the
+# other clients can't produce a per-case verbose trace, so the book marks their
+# tabs with a TODO:
+#   * Go (v0.5.3) hardcodes the server to `--verbosity normal` and exposes no
+#     verbosity setting at all.
+#   * C++ (hegel-cpp 0.3.9) and TypeScript (@hegeldev/hegel) only print the
+#     *final* counterexample's draws (gated on the last-run flag), so verbose
+#     adds nothing that shows the generate/shrink loop.
+#
+# The test pins a fixed seed so the trace is reproducible; the book shows the
+# test *without* it (inline, not via {{#include}}), as the seed is only a capture
+# detail. The seed must be one that actually *finds* the bug (the property is only
+# almost-always falsifiable) — if you change it, re-check that the run still fails.
+VERBOSE_EXAMPLES = [
+    ("rust-verbose", "rust", "rust",
+     ["cargo", "test", "--test", "lru_verbose", "--color", "never", "--",
+      "--nocapture"]),
+]
+
+
+# Replay iteration. Hegel saves the failing example it finds into a `.hegel/`
+# database and, on the next run, *replays* it instead of searching from scratch.
+# To capture that we run the (verbose) test twice: once to populate the database
+# with a normal from-scratch search, then again WITHOUT clearing it — the second
+# run jumps straight to the saved counterexample. That replay trace is short, so
+# unlike the verbose search it uses the normal extractor (no hand trimming).
+#
+# Rust only, for the same reason as the verbose iteration above.
+REPLAY_EXAMPLES = [
+    ("rust-verbose-replay", "rust", "rust",
+     ["cargo", "test", "--test", "lru_verbose", "--color", "never", "--",
+      "--nocapture"], extract_rust),
+]
+
+
 # Some of these tests are genuinely flaky: the naive "capacity >= 1" property is
 # true of *almost* every randomly generated example (you need more distinct keys
 # than the capacity, and most random capacities are large), so a given run may
@@ -159,10 +203,19 @@ def run_one(name: str, lang: str, subdir: str, cmd: list[str], extract) -> bool:
     combined = proc.stdout
     (OUT / f"{name}.raw.txt").write_text(combined)
 
-    trimmed = "\n".join(extract(combined))
-    trimmed = re.sub(r"\n{3,}", "\n\n", trimmed).rstrip() + "\n"
-    for pat, repl in GLOBAL_SUBS:
-        trimmed = re.sub(pat, repl, trimmed)
+    # Verbose examples (extract is None) have no automatic extractor: we capture
+    # the full trace as provenance and the book's <name>.txt is hand-curated, so
+    # we deliberately do not write/overwrite it here.
+    if extract is None:
+        ok = proc.returncode != 0
+        tries = f" (after {attempt} tries)" if attempt > 1 else ""
+        note = "" if ok else f"  [!] no failure in {MAX_TRIES} tries"
+        print(f"   exit={proc.returncode}{tries}, {len(combined.splitlines())} raw"
+              f" lines -> expected-output/{name}.raw.txt (hand-trim into"
+              f" {name}.txt){note}")
+        return ok
+
+    trimmed = normalise(extract(combined))
     (OUT / f"{name}.txt").write_text(trimmed)
 
     ok = proc.returncode != 0 and trimmed.strip() != ""
@@ -173,15 +226,61 @@ def run_one(name: str, lang: str, subdir: str, cmd: list[str], extract) -> bool:
     return ok
 
 
+def normalise(extracted: list[str]) -> str:
+    """Collapse blank runs and apply the path/home substitutions shared by all
+    trimmed outputs."""
+    trimmed = "\n".join(extracted)
+    trimmed = re.sub(r"\n{3,}", "\n\n", trimmed).rstrip() + "\n"
+    for pat, repl in GLOBAL_SUBS:
+        trimmed = re.sub(pat, repl, trimmed)
+    return trimmed
+
+
+def run_replay(name: str, lang: str, subdir: str, cmd: list[str], extract) -> bool:
+    cwd = HERE / subdir
+    print(f"== {name}: {' '.join(cmd)} (run twice, replaying from the database)"
+          f" (in {cwd.relative_to(REPO)})")
+
+    # First run: clear the database and search from scratch, so a failing example
+    # gets saved. Retry until it actually fails (and therefore saves something).
+    for attempt in range(1, MAX_TRIES + 1):
+        first = run_cmd(cwd, cmd)
+        if first.returncode != 0:
+            break
+
+    # Second run: do NOT clear the database, so Hegel replays the saved example
+    # instead of searching again. This is the run we capture.
+    proc = subprocess.run(
+        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
+    combined = proc.stdout
+    (OUT / f"{name}.raw.txt").write_text(combined)
+
+    trimmed = normalise(extract(combined))
+    (OUT / f"{name}.txt").write_text(trimmed)
+
+    ok = first.returncode != 0 and proc.returncode != 0 and trimmed.strip() != ""
+    note = "" if ok else "  [!] populate or replay run did not fail"
+    print(f"   populate exit={first.returncode}, replay exit={proc.returncode},"
+          f" {len(trimmed.splitlines())} display lines ->"
+          f" expected-output/{name}.txt{note}")
+    return ok
+
+
 def main() -> int:
     OUT.mkdir(exist_ok=True)
     only = set(sys.argv[1:])
     results = []
-    for name, lang, subdir, cmd, extract in EXAMPLES:
-        # `just examples rust` runs both rust iterations; `rust-nonzero` runs one.
+    all_examples = EXAMPLES + [(n, l, s, c, None) for (n, l, s, c) in VERBOSE_EXAMPLES]
+    for name, lang, subdir, cmd, extract in all_examples:
+        # `just examples rust` runs every rust iteration; `rust-nonzero` runs one.
         if only and name not in only and lang not in only:
             continue
         results.append(run_one(name, lang, subdir, cmd, extract))
+    for name, lang, subdir, cmd, extract in REPLAY_EXAMPLES:
+        if only and name not in only and lang not in only:
+            continue
+        results.append(run_replay(name, lang, subdir, cmd, extract))
     return 0 if all(results) else 1
 
 

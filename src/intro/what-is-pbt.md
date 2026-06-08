@@ -217,4 +217,6 @@ test(
 
 This test generates a fully general series of put operations against the cache, and asserts that the capacity is still respected at the end.
 
-Now, this still doesn't actually guarantee that the cache never exceeds its capacity. For starters (more on this problem later), this is only performing put operations. More importantly though, although the space this test applies to is *logically* infinite, in practice this test will run some number of test cases, mostly small, and will pass if each of those test cases pass. To learn more, read [Lifecycle of a Property-Based Test](./lifecycle.md)
+Now, this still doesn't actually guarantee that the cache never exceeds its capacity. For starters (more on this problem later), this is only performing put operations. More importantly though, although the space this test applies to is *logically* infinite, in practice this test will run some number of test cases, mostly small, and will pass if each of those test cases pass.
+
+To learn more about what actually happens when you run this test, read [Lifecycle of a Property-Based Test](./lifecycle.md)

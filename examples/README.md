@@ -19,6 +19,20 @@ Each iteration 2 keeps the same test name as iteration 1; they're kept separate
 (a distinct test crate / Go package / gtest executable / vitest file) so each can
 be run on its own.
 
+There is also a third, **verbose** iteration used by the chapter's walkthrough of
+what Hegel prints as it runs. It is the same `capacity >= 1` property, but with
+verbosity turned up and a fixed seed so the run prints every generated test case
+and every shrink step. Only Rust (`tests/lru_verbose.rs`) has one: at the library
+versions pinned here the other clients can't produce a per-case trace — Go
+(v0.5.3) exposes no verbosity setting, and C++ (v0.3.9) and TypeScript only print
+the *final* counterexample's draws — so the book marks their tabs with a `TODO`.
+
+The same `tests/lru_verbose.rs` also drives a **replay** capture
+(`rust-verbose-replay.txt`): the chapter shows that re-running a test replays the
+failure saved in the `.hegel` database instead of searching again. `run.py`
+produces it by running the test twice — once to populate the database, then again
+without clearing it — and capturing the (much shorter) second run.
+
 The regions shown in the book are delimited by `ANCHOR: impl` / `ANCHOR: test`
 comments and pulled in with mdBook's `{{#include path:anchor}}`.
 
@@ -40,6 +54,13 @@ just examples rust     # just one
 path/timing-normalised slice to `expected-output/<lang>.txt`, which the book
 includes. The trimming removes only volatile noise (absolute paths, elapsed
 times, thread ids) and surrounding framing.
+
+The verbose iteration is the exception: its trace is hundreds of lines, so there
+is no automatic extractor. `run.py` writes the full `rust-verbose.raw.txt`, and
+the committed `rust-verbose.txt` that the book includes is **curated by hand**
+from it (a few initial cases, the first failure, and a sample of the shrinking).
+Re-running the script regenerates the `.raw.txt` but deliberately leaves the
+hand-edited `.txt` alone.
 
 ## Prerequisites
 
