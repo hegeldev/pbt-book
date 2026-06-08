@@ -13,7 +13,7 @@ preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/hegeldev/hegel-book"
 edit-url-template = "https://github.com/hegeldev/hegel-book/edit/main/{path}"
 site-url = "/hegel-book/"
-additional-css = ["theme/tabs.css"]
+additional-css = ["theme/tabs.css", "theme/ai-prose.css"]
 additional-js = ["theme/tabs.js"]
 
 [output.html.fold]

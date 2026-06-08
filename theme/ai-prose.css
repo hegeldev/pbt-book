@@ -1,0 +1,55 @@
+/*
+ * Styling for prose that was written by an AI rather than a human author.
+ *
+ * Usage in a Markdown source file: wrap the prose in a <div> with the
+ * `ai-written` class, leaving a blank line on each side of the content so that
+ * mdbook still renders the Markdown inside it:
+ *
+ *     <div class="ai-written">
+ *
+ *     This paragraph was written by an AI, and **Markdown still works** here.
+ *
+ *     </div>
+ *
+ * The block is rendered in Comic Sans (with graceful fallbacks) and carries a
+ * small badge so readers can tell at a glance that a machine wrote it. Code and
+ * inline code inside the block keep the normal monospace font.
+ */
+
+.ai-written {
+    font-family: "Comic Sans MS", "Comic Sans", "Comic Neue", "Chalkboard SE", cursive;
+    border: 1px solid var(--quote-border, rgba(127, 127, 127, 0.35));
+    border-left: 4px solid var(--links, #4183c4);
+    border-radius: 6px;
+    background-color: var(--quote-bg, rgba(65, 131, 196, 0.06));
+    padding: 0.75rem 1rem 0.85rem;
+    margin: 1.2rem 0;
+}
+
+.ai-written::before {
+    content: "🤖 Written by AI";
+    display: block;
+    /* Keep the badge in the normal UI font so it reads as a label, not prose. */
+    font-family: var(--mono-font, monospace);
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.65;
+    margin-bottom: 0.4rem;
+}
+
+/* Don't let the wrapper's padding double up with the prose's own margins. */
+.ai-written > :first-of-type {
+    margin-top: 0;
+}
+
+.ai-written > :last-child {
+    margin-bottom: 0;
+}
+
+/* Code should stay monospace even inside an AI-written block. */
+.ai-written code,
+.ai-written pre {
+    font-family: var(--mono-font, "Source Code Pro", Consolas, monospace);
+}
