@@ -1,0 +1,9 @@
+--- FAIL: TestCacheMatchesModel
+    stateful_capped_test.go:71: capacity := hegel.Draw(ht, hegel.Integers(1, math.MaxInt)) = 1
+    stateful.go:93: Initial invariant check.
+    stateful.go:120: Step 1: RulePut
+    stateful.go:120: Step 2: RulePut
+    stateful.go:120: Step 3: RuleGet
+    stateful_capped_test.go:70: property test failed: get(""): cache has (0, true), model has (0, false)
+FAIL
+FAIL	lru-example/stateful_capped

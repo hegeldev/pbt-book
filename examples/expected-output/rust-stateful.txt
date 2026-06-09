@@ -1,0 +1,20 @@
+running 1 test
+let capacity = 1;
+Initial invariant check.
+Step 1: put
+  let draw_1 = "";
+  let draw_2 = 0;
+Step 2: put
+  let draw_3 = "0";
+  let draw_4 = 0;
+thread 'test_cache_matches_model' panicked at tests/stateful.rs:70:9:
+cache size 2 != model size 1
+
+test test_cache_matches_model ... FAILED
+
+failures:
+
+failures:
+    test_cache_matches_model
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out

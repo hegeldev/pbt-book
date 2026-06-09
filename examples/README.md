@@ -33,6 +33,29 @@ failure saved in the `.hegel` database instead of searching again. `run.py`
 produces it by running the test twice — once to populate the database, then again
 without clearing it — and capturing the (much shorter) second run.
 
+There is also a **stateful** (model-based) iteration used by the chapter on
+stateful testing. It drives the same broken cache and a correct reference model
+side by side through `put`/`get` rules and a same-size invariant, and fails for
+the same reason (the cache never evicts) but via the model. Rust
+(`tests/stateful.rs`) and Go (`stateful/stateful_test.go`) have one — those are
+the clients that currently support stateful testing — and the book marks the C++
+and TypeScript tabs with a `TODO`. Both outputs are short, so they use the normal
+extractors (Go's drops two hegel-internal per-step draw lines). This iteration
+also adds a `Get`/`get` method to the cache, used by the `get` rule.
+
+There is a second stateful iteration (`*-stateful-capped`) that runs the same
+state machine against `CappedCache`, a cache that stops accepting new keys once
+it is full. Its size stays within the capacity, so the same-size invariant
+*passes* — but it keeps the wrong (oldest) entries, so the `get` rule is what
+catches it. Only `put` differs from the first cache, and that method is what the
+chapter shows (anchor `capped-put`).
+
+Finally there is a passing iteration (`*-stateful-real`) that runs the same state
+machine against `LRUCache` — an actual, correct LRU cache (anchor `real-impl`).
+Unlike every other example here it is *supposed to pass*, so `run.py` runs it
+through `run_passing` (expects exit 0, no retry) and captures the test going
+green rather than a failure.
+
 The regions shown in the book are delimited by `ANCHOR: impl` / `ANCHOR: test`
 comments and pulled in with mdBook's `{{#include path:anchor}}`.
 

@@ -166,8 +166,6 @@ In order to see shrinking at work, we can use the `verbosity` setting to print e
 
 [^rust-only-verbosity]: Or we can in languages that support this, which turns out to only be our rust implementation right now. Sorry, we're on it.
 
-</div>
-
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}
 ```rust,ignore
@@ -234,16 +232,12 @@ TODO
 You can see both the generation and the shrinking at play here. Initially, Hegel tries a variety of different test cases, with various different capacities and entries, until it finds one that fails (e.g. capacity = 1, with more than one entry). Then it switches to a shrink mode, where it tries deleting those entries, simplifying keys and values within them, etc.
 Once it can no longer shrink any further it replays the final shrunk example one last time and lets the shrunk failure that we saw propagate to the test runner.
 
-</div>
-
 ## Replaying a saved failure
 
 We'll now see one other piece of the property-based testing lifecycle: Replay.
 Once Hegel has found this failure, subsequent runs will start from there (until the bug is fixed).
 So if we run the verbose test a second time without changing anything, we don't
 see the long search and shrink from before:
-
-</div>
 
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}

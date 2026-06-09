@@ -104,6 +104,29 @@ def extract_typescript(text: str) -> list[str]:
     )
 
 
+def extract_go_pass(text: str) -> list[str]:
+    # A passing `go test` just prints an `ok <package> <time>` line; keep it (with
+    # the timing stripped) so the book can show the test going green.
+    out = [ln for ln in text.splitlines() if ln.startswith("ok") and "lru-example" in ln]
+    return [re.sub(r"\t[\d.]+s\s*$", "", ln) for ln in out]
+
+
+def extract_go_stateful(text: str) -> list[str]:
+    # Like extract_go, but the stateful runner also logs two hegel-internal
+    # draws per step (the number of steps to take, and which rule to run). Those
+    # are implementation detail rather than part of the user's model, so we drop
+    # them; everything else (the drawn capacity, the "Step N" labels, and the
+    # failing invariant) is kept, prefixes and all, to match the other go output.
+    lines = text.splitlines()
+    out = slice_lines(lines, "--- FAIL:", re.compile(r"^FAIL\tlru-example"))
+    drop = [re.compile(r": nSteps = "), re.compile(r": idx = ")]
+    out = [ln for ln in out if not any(p.search(ln) for p in drop)]
+    text = "\n".join(out)
+    text = re.sub(r" \(\d+\.\d+s\)", "", text)
+    text = re.sub(r"^(FAIL\tlru-example(?:/\S+)?)\t\d+\.\d+s", r"\1", text, flags=re.M)
+    return text.splitlines()
+
+
 # (output-name, language, subdir, command, extractor). Each language has two
 # iterations of the test: the original (capacity >= 0) and a second that only
 # draws non-zero capacities (the "-nonzero" outputs). Every iteration-1 command
@@ -167,6 +190,44 @@ REPLAY_EXAMPLES = [
     ("rust-verbose-replay", "rust", "rust",
      ["cargo", "test", "--test", "lru_verbose", "--color", "never", "--",
       "--nocapture"], extract_rust),
+]
+
+
+# Stateful (model-based) iteration. These run a state machine that drives the
+# real cache and a correct reference model side by side, checked by a get rule
+# and a same-size invariant (see src/intro/stateful.md). They fail for the same
+# underlying reason as the others — the cache never evicts — but via the model.
+#
+# Only Rust and Go appear here: hegel-cpp (0.3.9) and hegel-typescript do not yet
+# support stateful testing (it is planned), so the book marks their tabs with a
+# TODO. The output is short, so both use the normal extractors (no hand trim).
+STATEFUL_EXAMPLES = [
+    ("rust-stateful", "rust", "rust",
+     ["cargo", "test", "--test", "stateful", "--color", "never", "--",
+      "--nocapture"], extract_rust),
+    ("go-stateful", "go", "go", ["go", "test", "./stateful/"], extract_go_stateful),
+    # Second iteration: the same state machine against CappedCache, which stops
+    # accepting new keys when full. Its size stays within capacity (so the
+    # same-size invariant passes) but it keeps the wrong entries, so the get rule
+    # is what catches it.
+    ("rust-stateful-capped", "rust", "rust",
+     ["cargo", "test", "--test", "stateful_capped", "--color", "never", "--",
+      "--nocapture"], extract_rust),
+    ("go-stateful-capped", "go", "go",
+     ["go", "test", "./stateful_capped/"], extract_go_stateful),
+]
+
+
+# Passing iteration: the same state machine against a *correct* LRU cache
+# (LRUCache). Unlike everything else here, these runs are supposed to *succeed* —
+# the model and the cache agree under every sequence — so they go through
+# run_passing (which expects exit 0) rather than run_one (which retries until it
+# sees a failure). Rust and Go only, as with the other stateful examples.
+PASSING_EXAMPLES = [
+    ("rust-stateful-real", "rust", "rust",
+     ["cargo", "test", "--test", "stateful_real", "--color", "never"], extract_rust),
+    ("go-stateful-real", "go", "go",
+     ["go", "test", "./stateful_real/"], extract_go_pass),
 ]
 
 
@@ -267,11 +328,35 @@ def run_replay(name: str, lang: str, subdir: str, cmd: list[str], extract) -> bo
     return ok
 
 
+def run_passing(name: str, lang: str, subdir: str, cmd: list[str], extract) -> bool:
+    cwd = HERE / subdir
+    print(f"== {name}: {' '.join(cmd)} (expecting success) (in {cwd.relative_to(REPO)})")
+
+    # A correct implementation passes, so unlike run_one we expect exit 0 and do
+    # not retry. We still clear the database first so the run is independent.
+    proc = run_cmd(cwd, cmd)
+    combined = proc.stdout
+    (OUT / f"{name}.raw.txt").write_text(combined)
+
+    trimmed = normalise(extract(combined))
+    (OUT / f"{name}.txt").write_text(trimmed)
+
+    ok = proc.returncode == 0 and trimmed.strip() != ""
+    note = "" if ok else f"  [!] expected success, got exit {proc.returncode} (or no output)"
+    print(f"   exit={proc.returncode}, {len(trimmed.splitlines())} display lines ->"
+          f" expected-output/{name}.txt{note}")
+    return ok
+
+
 def main() -> int:
     OUT.mkdir(exist_ok=True)
     only = set(sys.argv[1:])
     results = []
-    all_examples = EXAMPLES + [(n, l, s, c, None) for (n, l, s, c) in VERBOSE_EXAMPLES]
+    all_examples = (
+        EXAMPLES
+        + [(n, l, s, c, None) for (n, l, s, c) in VERBOSE_EXAMPLES]
+        + STATEFUL_EXAMPLES
+    )
     for name, lang, subdir, cmd, extract in all_examples:
         # `just examples rust` runs every rust iteration; `rust-nonzero` runs one.
         if only and name not in only and lang not in only:
@@ -281,6 +366,10 @@ def main() -> int:
         if only and name not in only and lang not in only:
             continue
         results.append(run_replay(name, lang, subdir, cmd, extract))
+    for name, lang, subdir, cmd, extract in PASSING_EXAMPLES:
+        if only and name not in only and lang not in only:
+            continue
+        results.append(run_passing(name, lang, subdir, cmd, extract))
     return 0 if all(results) else 1
 
 
