@@ -10,8 +10,8 @@ src = "src"
 [output.html]
 default-theme = "rust"
 preferred-dark-theme = "ayu"
-git-repository-url = "https://github.com/hegeldev/hegel-book"
-edit-url-template = "https://github.com/hegeldev/hegel-book/edit/main/{path}"
+git-repository-url = "https://github.com/hegeldev/pbt-book"
+edit-url-template = "https://github.com/hegeldev/pbt-book/edit/main/{path}"
 site-url = "/"
 additional-css = ["theme/tabs.css", "theme/ai-prose.css"]
 additional-js = ["theme/tabs.js"]
