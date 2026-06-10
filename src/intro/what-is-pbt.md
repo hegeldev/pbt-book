@@ -1,6 +1,6 @@
 # What is property-based testing?
 
-Property-based testing is just a generalisation of the sort of testing you're already useful.[^verification]
+Property-based testing is just a generalisation of the sort of testing you're already used to.[^verification]
 
 [^verification]: This is not how it's usually presented though. Property-based testing is often sold as "lightweight formal verification" and as if it was a very different thing from normal testing and there were these profound mathematical properties of your software that you pluck out of the platonic realm and place within your test suite. I think this is an extremely unhelpful way to look at it.
 
