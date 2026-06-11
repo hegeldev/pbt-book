@@ -2,23 +2,29 @@
 
 Property-based testing is just a generalisation of the sort of testing you're already used to.[^verification]
 
+If you look at your tests, they are often named after some very general claim like "a user should not be able to access project documents after they have been removed from the project", and then when you look at what the actual test does, it instead tests some specific instance of that claim like "Alice creates a project named Kittens and then adds Bob to it and removes him immediately and Bob can no longer access the README for Kittens".
+
+This is often fine, but means you can miss variations that seem like they shouldn't matter but do (e.g. what if a different user adds and removes bob? What if they have different permissions? What if Bob tries to remove himself?).
+ Property-based testing is a way of bringing the two into line by writing tests that can actually check any instance of the general claim the test already says that it's making.
+
 [^verification]: This is not how it's usually presented though. Property-based testing is often sold as "lightweight formal verification" and as if it was a very different thing from normal testing and there were these profound mathematical properties of your software that you pluck out of the platonic realm and place within your test suite. I think this is an extremely unhelpful way to look at it.
 
-You can think of a test as consisting of two parts:
+To see how this works, you can think of a test as consisting of two parts:
 
 1. A scenario
 2. A set of checks
 
 The scenario is "I did a thing", and the checks are "here is what should have happened when I did that thing".
+In our example above, the scenario is "Alice removed Bob from the Kittens project" and the check is that Bob can no longer access its README.
 
-Each of these can vary in how specific they are.
+In classical example-based testing these are typically at about that level of specificity, but in other types of testing this can vary:
 
 1. Here is the exact thing I did, and here is the exact thing that should have happened.
 2. Here is the exact thing I did, and here are some things that should be true about the result.
 3. I did something like this, and this is the exact thing that should have happened.
 4. I did something like this, and here are some things that should be true about the result.
 
-Concretely:
+Concrete examples of each type:
 
 1. Here is a series of interactions with my web-application, and here's what the screenshot of the final result should look like.
 2. Here is a series of interactions with my web-application, and every fetch should have returned a 200 or a redirect.
@@ -38,8 +44,8 @@ None of these are truly distinct categories, and all of them are great in some c
 
 ## An example
 
-Suppose we have an LRU cache, and we want to check that it never exceeds its
-configured capacity. We might write the following example-based test:
+Suppose we have an LRU cache - a key/value store with some maximum capacity, such that when you hit the capacity you evict the least recently used key - and we want to check that it never exceeds its configured capacity.
+We might write the following example-based test:
 
 {{#tabs global="hegel-lang" }}
 {{#tab name="Rust" }}
